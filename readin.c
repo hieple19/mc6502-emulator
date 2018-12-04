@@ -7,6 +7,7 @@
 int* byteArray;
 char buffer[2048];
 int byteArrayIndex = 0x100;
+// int byteArrayIndex = 0x0;
 
 void removeSpaces(char* source){
 	char* result = source;
@@ -21,7 +22,7 @@ void removeSpaces(char* source){
 }
 
 int byteCount(){
-	return byteArrayIndex - 0x100;
+	return byteArrayIndex + 1;
 }
 int checkForHeader(){
 	for(int i=0; i<2048; i++){
@@ -54,7 +55,7 @@ void readBinary(){
 	byteArray = (int*) malloc(sizeof(int)*0xFFFF);
 	FILE *inputFile;
 
-	inputFile = fopen("conway.exc", "rb");
+	inputFile = fopen("fib.exc", "rb");
 
 	if (inputFile == NULL)
 	{
@@ -75,7 +76,7 @@ void readBinary(){
 
 	printf("%d\n", byteCount());
 	for(int i = 0x100; i < 0x100 + byteCount(); i= i + 4){
-		// printf("%02x %02x %02x %02x\n",byteArray[i], byteArray[i+1],byteArray[i+2],byteArray[i+3]);
+		// printf("0x%04x %02x %02x %02x %02x\n",i, byteArray[i], byteArray[i+1],byteArray[i+2],byteArray[i+3]);
 	}
  //   	fseek( inputFile, 0, SEEK_SET );
 

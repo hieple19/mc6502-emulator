@@ -12,26 +12,67 @@ int main(){
 	initializeFunctions();
 	readBinary();
 	int i = 0;
-	char command[1];
-	while(pc - 0x100 < byteCount() && !endFile){
-		scanf("%s", command);
-		if(!strcmp(command, "c")){
+	char buffer[15];
+	while(pc - 0x100 < byteCount() || !endFile){
+		printf("\nEnter new instruction: ");
+		fgets(buffer, 15, stdin );
+		printf("\n");
+		char* command = strtok(buffer, " ");
+		removeSpaces(command);
+		command[1] = 0;
+		// int hexCode = (int)strtol(strtok(0," "),NULL,0);	// Copy hex Code to opCode[] array of
+
+		if(!strcmp(command, "s")){
 			updatePC();
 		}
-		// updatePC();
-		if(i == 15){
-			// break;
+		else if(!strcmp(command, "x")){
+			break;
+		}
+		else if(!strcmp(command, "p")){
+			printData();
+		}
+		else if(!strcmp(command, "e")){
+			char* address = strtok(0," ");
+			*address++;
+			removeSpaces(address);
+			address[strlen(address)-1] = 0;
+			printf("String %s\n", address);
+
+			int hexCode = (int)strtol(address,NULL,16);
+			printf("hex is %x \n", hexCode);
+			if(hexCode >= 0 && hexCode <= 0xFFFF){
+				printf("Byte at $%02x: %02x\n", hexCode, byteArray[hexCode]);
+			}
+			else{
+				printf("Error with address \n");
+			}
+		}
+
+		else if(!strcmp(command, "c")){
+			char* address = strtok(0," ");
+			if(address == 0){
+				printf("Error with address \n");
+			}
+			else{
+				removeSpaces(address);
+				int hexCode = (int)strtol(address,NULL,0);
+				if(hexCode >= 0 && hexCode <= 0xFFFF){
+				// continueToAddress(hexCode);
+				}
+
+				else{
+					printf("Error with address \n");
+				}
+			}
+		}
+		else{
+			printf("Invalid Instruction\n");
+		}
+
+		if(i == 120){
+			break;
 		}
 		i++;
-		printf("\n");
-		printf("i is %d\n",i);
-		// printf("0xf0 is 0x%x\n", byteArray[0xf0] );
-		// printf("0xf1 is 0x%x\n", byteArray[0xf1] );
-		printf("\n");
 	}
-
-	// printf("0xf0 is 0x%02x\n", byteArray[0xf0] );
-	// printf("0xf1 is 0x%02x\n", byteArray[0xf1] );
-
 	return 0;
 }

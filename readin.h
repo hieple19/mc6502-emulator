@@ -3,3 +3,4 @@ extern void readBinary();
 
 extern int* byteArray;
 extern int byteCount();
+extern void removeSpaces();

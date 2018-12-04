@@ -9,10 +9,14 @@
 #include "opcode.h"
 
 int pc = 0x0100;
+// int pc = 0;
 int stack[256];
 int acc = 0;
+int* acc_ptr = &acc;
 int X = 0;
+int* x_ptr = &X;
 int Y = 0;
+int* y_ptr = &Y;
 int SP = 0xFF;
 bool endFile = false;
 
@@ -92,20 +96,20 @@ void AND(int* operands,char* type){
 		acc = acc & getValue(lookup);
 
 	} else if(!strcmp(type,"Abs")){
-		acc = acc & getValue(operands[0] + operands[1]<<4);
+		acc = acc & getValue(operands[0] + (operands[1]<<8));
 
 	} else if(!strcmp(type,"AbsX")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + Y;
+		int lookup = byteArray[operands[0] + (operands[1]<<8)] + Y;
 		acc = acc & getValue(lookup);
 
 	} else if(!strcmp(type,"AbsY")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + Y;
+		int lookup = byteArray[operands[0] + (operands[1]<<8)] + Y;
 		acc = acc & getValue(lookup);
 
 	} else if(!strcmp(type,"IndX")){
 		int lookupIndex = operands[0] + X;
 		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4;
+		int byte2 = (byteArray[lookupIndex+1])<<8;
 
 		int address = byte1 + byte2;
 
@@ -113,169 +117,117 @@ void AND(int* operands,char* type){
 	} else if(!strcmp(type,"IndY")){
 		int lookupIndex = operands[0];
 		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4; 
+		int byte2 = (byteArray[lookupIndex+1])<<8; 
 		int address = byte1 + byte2 + Y;
 		acc = acc & byteArray[address];
 	}
 	checkZF(acc);
 	checkNF(acc);
 }
-void LDA(int* operands,char* type){
+
+void loadRegister(int* operands,char* type, int* reg){
 	if(!strcmp(type,"Imm")){
-		acc = operands[0];
+		*reg = operands[0];
 	}
 	else if(!strcmp(type,"ZP")){
-		acc = getValue(operands[0]);
+		*reg = getValue(operands[0]);
 
 	} else if(!strcmp(type,"ZPX")){
 		int lookup = byteArray[operands[0]] + X;
-		acc = getValue(lookup);
+		*reg = getValue(lookup);
 
 	} else if(!strcmp(type,"Abs")){
-		acc = getValue(operands[0] + operands[1]<<4);
+		*reg = getValue(operands[0] + (operands[1]<<8));
 
 	} else if(!strcmp(type,"AbsX")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + Y;
-		acc = getValue(lookup);
+		int lookup = byteArray[operands[0] + (operands[1]<<8)] + X;
+		*reg = getValue(lookup);
 
 	} else if(!strcmp(type,"AbsY")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + Y;
-		acc = getValue(lookup);
+		int lookup = byteArray[operands[0] + (operands[1]<<8)] + Y;
+		*reg = getValue(lookup);
 
 	} else if(!strcmp(type,"IndX")){
 		int lookupIndex = operands[0] + X;
 		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4;
+		int byte2 = (byteArray[lookupIndex+1])<<8;
 
 		int address = byte1 + byte2;
+		*reg = byteArray[address];
 
-		acc = byteArray[address];
 	} else if(!strcmp(type,"IndY")){
 		int lookupIndex = operands[0];
 		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4; 
+		int byte2 = (byteArray[lookupIndex+1])<<8; 
 		int address = byte1 + byte2 + Y;
-		acc = byteArray[address];
+		*reg = byteArray[address];
 	}
-	checkZF(acc);
-	checkNF(acc);
+	checkZF(*reg);
+	checkNF(*reg);
 }
-
-void STA(int* operands,char* type){
-	// printf("%s\n", type);
-	if(!strcmp(type,"ZP")){
-		byteArray[operands[0]] = acc;
-
-	} else if(!strcmp(type,"ZPX")){
-		int storeAt = operands[0] + X;
-		byteArray[storeAt] = acc;
-
-	} else if(!strcmp(type,"AbsX")){
-		int storeAt = operands[0] + operands[1]<<4 + X;
-		byteArray[storeAt] = acc;
-
-	} else if(!strcmp(type,"Abs")){
-		int storeAt = operands[0] + operands[1]<<4;
-		byteArray[storeAt] = acc;
-
-	} else if(!strcmp(type,"AbsY")){
-		int storeAt = operands[0] + operands[1]<<4 + Y;
-		byteArray[storeAt] = acc;
-
-	} else if(!strcmp(type,"IndX")){
-		int lookupIndex = operands[0] + X;
-		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4;
-
-		int address = byte1 + byte2;
-
-		byteArray[address] = acc;
-	} else if(!strcmp(type,"IndY")){
-		int lookupIndex = operands[0];
-		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4; 
-		int address = byte1 + byte2 + Y;
-		
-		byteArray[address] = acc;
-	}
-}
-
-void STX(int* operands,char* type){
-	// printf("%s\n", type);
-	if(!strcmp(type,"ZP")){
-		byteArray[operands[0]] = X;
-
-	} else if(!strcmp(type,"ZPY")){
-		int storeAt = operands[0] + Y;
-		byteArray[storeAt] = X;
-
-	} else if(!strcmp(type,"Abs")){
-		int storeAt = operands[0] + operands[1]<<4;
-		byteArray[storeAt] = X;
-	} 
-}
-
-void STY(int* operands,char* type){
-	if(!strcmp(type,"ZP")){
-		byteArray[operands[0]] = Y;
-
-	} else if(!strcmp(type,"ZPX")){
-		int storeAt = operands[0] + X;
-		byteArray[storeAt] = Y;
-
-	} else if(!strcmp(type,"Abs")){
-		int storeAt = operands[0] + operands[1]<<4;
-		byteArray[storeAt] = Y;
-	} 
+void LDA(int* operands,char* type){
+	loadRegister(operands, type, acc_ptr);
 }
 
 void LDX(int* operands,char* type){
-	// printf("%s\n", type);
-	if(!strcmp(type,"Imm")){
-		X = operands[0];
-	}
-	else if(!strcmp(type,"ZP")){
-		X = getValue(operands[0]);
-
-	} else if(!strcmp(type,"ZPY")){
-		int lookup = byteArray[operands[0]] + Y;
-		X = getValue(lookup);
-
-	} else if(!strcmp(type,"Abs")){
-		X = getValue(operands[0] + operands[1]<<4);
-
-	} else if(!strcmp(type,"AbsY")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + Y;
-		X = getValue(lookup);
-
-	}
-	checkZF(X);
-	checkNF(X);
+	loadRegister(operands,type,x_ptr);
 }
 
-
 void LDY(int* operands,char* type){
-	// printf("%s\n", type);
-	if(!strcmp(type,"Imm")){
-		Y = operands[0];
-	}
-	else if(!strcmp(type,"ZP")){
-		Y = getValue(operands[0]);
+	loadRegister(operands,type,y_ptr);
+}
+void storeRegister(int *operands, char* type, int* reg){
+	if(!strcmp(type,"ZP")){
+		byteArray[operands[0]] = *reg;
 
 	} else if(!strcmp(type,"ZPX")){
-		int lookup = byteArray[operands[0]] + X;
-		Y = getValue(lookup);
-
-	} else if(!strcmp(type,"Abs")){
-		Y = getValue(operands[0] + operands[1]<<4);
+		int storeAt = operands[0] + X;
+		byteArray[storeAt] = *reg;
 
 	} else if(!strcmp(type,"AbsX")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + X;
-		Y = getValue(lookup);
+		// printf("%04x\n", operands[0] );
+		// printf("%04x\n", operands[1]<<8);
+		// printf("%x\n", X);
+		int storeAt = operands[0] + (operands[1]<<8) + X;
+		printf("store at 0x%04x\n", storeAt );
+		byteArray[storeAt] = *reg;
 
+	} else if(!strcmp(type,"Abs")){
+		int storeAt = operands[0] + operands[1]<<8;
+		byteArray[storeAt] = *reg;
+
+	} else if(!strcmp(type,"AbsY")){
+		int storeAt = operands[0] + operands[1]<<8 + Y;
+		byteArray[storeAt] = *reg;
+
+	} else if(!strcmp(type,"IndX")){
+		int lookupIndex = operands[0] + X;
+		int byte1 = byteArray[lookupIndex];
+		int byte2 = (byteArray[lookupIndex+1])<<8;
+
+		int address = byte1 + byte2;
+
+		byteArray[address] = *reg;
+
+	} else if(!strcmp(type,"IndY")){
+		int lookupIndex = operands[0];
+		int byte1 = byteArray[lookupIndex];
+		int byte2 = (byteArray[lookupIndex+1])<<8; 
+		int address = byte1 + byte2 + Y;
+		
+		byteArray[address] = *reg;
 	}
-	checkZF(Y);
-	checkNF(Y);
+}
+void STA(int* operands,char* type){
+	storeRegister(operands, type,acc_ptr);
+}
+
+void STX(int* operands,char* type){
+	storeRegister(operands, type, x_ptr);
+}
+
+void STY(int* operands,char* type){
+	storeRegister(operands, type, y_ptr);
 }
 
 void INC(int* operands, char* type){
@@ -290,11 +242,11 @@ void INC(int* operands, char* type){
 		value = getValue(lookup) + 1;
 
 	} else if(!strcmp(type,"Abs")){
-		int lookup = byteArray[operands[0] + operands[1]<<4];
+		int lookup = byteArray[operands[0] + operands[1]<<8];
 		byteArray[lookup]++;
 		value = getValue(lookup) + 1;
 	} else if(!strcmp(type,"AbsX")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + X;
+		int lookup = byteArray[operands[0] + operands[1]<<8] + X;
 		byteArray[lookup]++;
 		value = getValue(lookup) + 1;
 	}
@@ -316,7 +268,7 @@ void JSR(int* operands, char* type){
 	int pos = findPositionStack();
 	SP--;
 	stack[pos] = pc + 2; 
-	pc = operands[0] + operands[1]<<4;
+	pc = operands[0] + operands[1]<<8;
 }
 
 void RTS(int* operands, char* type){
@@ -345,28 +297,28 @@ void ADC(int* operands, char* type){
 		sum = getValue(lookup) + acc + CF;
 
 	} else if(!strcmp(type,"Abs")){
-		sum = getValue(operands[0] + operands[1]<<4) + acc + CF;
+		sum = getValue(operands[0] + (operands[1]<<8)) + acc + CF;
 
 	} else if(!strcmp(type,"AbsX")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + X;
+		int lookup = byteArray[operands[0] + (operands[1]<<8)] + X;
 		sum = getValue(lookup) + acc + CF;
 
 	} else if(!strcmp(type,"AbsY")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + Y;
+		int lookup = byteArray[operands[0] + (operands[1]<<8)] + Y;
 		sum = getValue(lookup) + acc + CF;
 
 	} else if(!strcmp(type,"IndX")){
 		int lookupIndex = operands[0] + X;
 		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4;
+		int byte2 = (byteArray[lookupIndex+1])<<8;
 
 		int address = byte1 + byte2;
-
 		sum = byteArray[address] + acc + CF;
+
 	} else if(!strcmp(type,"IndY")){
 		int lookupIndex = operands[0];
 		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4; 
+		int byte2 = (byteArray[lookupIndex+1])<<8; 
 		int address = byte1 + byte2 + Y;
 		sum = byteArray[address] + acc + CF;
 	}
@@ -383,7 +335,7 @@ void CPX(int* operands, char* type){
 	} else if(!strcmp(type,"ZP")){
 		compare = getValue(operands[0]);
 	} else if(!strcmp(type,"Abs")){
-		compare = getValue(operands[0] + operands[1]<<4);
+		compare = getValue(operands[0] + operands[1]<<8);
 	}
 
 	if(X>=compare){
@@ -402,7 +354,7 @@ void CPY(int* operands, char* type){
 	} else if(!strcmp(type,"ZP")){
 		compare = getValue(operands[0]);
 	} else if(!strcmp(type,"Abs")){
-		compare = getValue(operands[0] + operands[1]<<4);
+		compare = getValue(operands[0] + operands[1]<<8);
 	}
 
 	if(Y>=compare){
@@ -430,28 +382,28 @@ void CMP(int* operands, char* type){
 		compare = getValue(lookup);
 
 	} else if(!strcmp(type,"Abs")){
-		compare = getValue(operands[0] + operands[1]<<4);
+		compare = getValue(operands[0] + operands[1]<<8);
 
 	} else if(!strcmp(type,"AbsX")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + X;
+		int lookup = byteArray[operands[0] + operands[1]<<8] + X;
 		compare = getValue(lookup);
 
 	} else if(!strcmp(type,"AbsY")){
-		int lookup = byteArray[operands[0] + operands[1]<<4] + Y;
+		int lookup = byteArray[operands[0] + operands[1]<<8] + Y;
 		compare = getValue(lookup);
 
 	} else if(!strcmp(type,"IndX")){
 		int lookupIndex = operands[0] + X;
 		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4;
+		int byte2 = (byteArray[lookupIndex+1])<<8;
 
 		int address = byte1 + byte2;
-
 		compare = byteArray[address];
+
 	} else if(!strcmp(type,"IndY")){
 		int lookupIndex = operands[0];
 		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<4; 
+		int byte2 = (byteArray[lookupIndex+1])<<8; 
 		int address = byte1 + byte2 + Y;
 		compare = byteArray[address];
 	}
@@ -462,7 +414,7 @@ void CMP(int* operands, char* type){
 	if(acc == compare){
 		CF =1;
 	}
-	checkNF(acc-compare);
+	checkNF(acc - compare);
 }
 
 void BRK(int* operands, char* type){}
@@ -554,7 +506,7 @@ void CLD(int* operands, char* type){
 
 void JMP(int* operands, char* type){
 	if(!strcmp(type,"Ind")){
-		int target = operands[0] + operands[1]<<4;
+		int target = operands[0] + operands[1]<<8;
 
 		int lsb = byteArray[target];
 		int msb = byteArray[target+1]<<4;
@@ -562,7 +514,7 @@ void JMP(int* operands, char* type){
 		pc = byteArray[lsb + msb];
 	}
 	else if(!strcmp(type,"Abs")){
-		int target = operands[0] + operands[1]<<4;
+		int target = operands[0] + operands[1]<<8;
 		pc = target;
 	}
 }
@@ -594,9 +546,11 @@ int findIndex(char* code){
 
 void initializeFunctions() {
 	ftable[0] = ADC;
+	ftable[1] = AND;
 	ftable[4] = BPL;
 	ftable[5] = BMI;
 	ftable[14] = CPX;
+	ftable[27] = JSR;
 	ftable[28] = LDA;
 	ftable[29] = LDX;
 	ftable[30] = LDY;
@@ -631,6 +585,7 @@ void processLine(int opCode, int noBytes){
 }
 void printData(){
 	printf("A = $%02x \n", acc);
+	// printf("ptr %02x\n", *acc_ptr);
 	printf("X = $%02x \n", X);
 	printf("Y = $%02x \n", Y);
 	printf("NF = %d\n", NF);
@@ -646,7 +601,8 @@ void updatePC(){
 	// printf("%s\n", );
 	int noBytes = codeList[opCodeCurr].noBytes;
 	int print = (0x600 - 0x100)+pc;
-	// printf("0x%04x ", print);
+	// int print = pc;
+	printf("0x%04x ", print);
 	for(int i = 0; i<noBytes; i++){
 		printf("%02x ", byteArray[pc+i]);
 	}

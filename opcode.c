@@ -72,7 +72,6 @@ int lmain(){
 		printf("%d ", i );
 		printf("Name %s, ", codeList[i].name);
 		printf(", Mode %s, ", codeList[i].mode);
-
 		printf(", Hex 0x%x, ", codeList[i].hexCode);
 		printf(", Length %d", codeList[i].noBytes);
 		printf("\n");
