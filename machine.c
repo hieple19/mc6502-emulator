@@ -35,6 +35,34 @@ int *vf_ptr = &VF;
 int NF = 0;
 int *nf_ptr = &NF;
 
+int checkCF(int no){
+	if(no > 0xFF){
+		no = no & 0xFF;
+		CF = 1;
+		return no;
+	}
+	CF = 0;
+	return no;
+}
+
+bool checkZF(int reg){
+	if(reg == 0){
+		ZF = 1;
+		return true;
+	}
+	ZF = 0;
+	return false;
+}
+
+bool checkNF(int reg){
+	if ((reg & 0x80) == 0x80){
+		NF = 1;
+		return true;
+	}
+	NF = 0;
+	return false;
+}
+
 int translate8bitInts(int normal){
 	int bit7 = (-1) * ((normal & 0x80) >> 7) * pow(2,7);
 	int bit6 = ((normal & 0x40) >> 6) * pow(2,6);
@@ -65,67 +93,23 @@ int add8bits(int a, int b){
 	return sum;
 }
 
-int checkCF(int no){
-	if(no > 0xFF){
-		no = no & 0xFF;
-		CF = 1;
-		return no;
+int subtract8bits(int a, int b){
+	int diff = a - b - (1 - CF);
+	int signA = a & 0x80;
+	int signB = b & 0x80;
+	if(diff > 0xFF){
+		diff = diff & 0xFF;
+		CF = 0;
 	}
-	CF = 0;
-	return no;
-}
-
-bool checkZF(int reg){
-	if(reg == 0){
-		ZF = 1;
-		return true;
+	int signDiff = diff & 0x80;
+	if(signA == signB){
+		if(signDiff != signA){
+			VF = 1;
+		}
 	}
-	ZF = 0;
-	return false;
-}
-
-bool checkNF(int reg){
-	if ((reg & 0x80) == 0x80){
-		NF = 1;
-		return true;
-	}
-	NF = 0;
-	return false;
-}
-
-int arrayIndex(int* operands, type){
-	int storeAt;
-	if(!strcmp(type,"ZP")){
-		storeAt = addressZP(operands, 0);
-
-	} else if(!strcmp(type,"ZPX")){
-		// storeAt = (operands[0] + X) & 0xFF;
-		storeAt = addressZP(operands, X);
-
-	} else if(!strcmp(type,"ZPY")){
-		storeAt = addressZP(operands, Y);
-
-	} else if(!strcmp(type,"Abs")){
-		storeAt = addressAbs(operands, 0);
-
-	} else if(!strcmp(type,"AbsX")){
-
-		storeAt = addressAbs(operands, X);
-
-	}else if(!strcmp(type,"AbsY")){
-
-		storeAt = addressAbs(operands,Y);
-
-	} else if(!strcmp(type,"IndX")){
-
-		storeAt = addressIndX(operands);
-
-	} else if(!strcmp(type,"IndY")){
-	
-		storeAt = addressIndY(operands);
-	}
-	printf("Array index is 0x%04x\n", storeAt );
-	return storeAt;
+	checkZF(diff);
+	checkNF(diff);
+	return diff;
 }
 
 int getAddress(int* operands, int number){
@@ -163,70 +147,7 @@ int addressIndY(int* operands){
 }
 
 
-void ADC(int* operands, char* type){
-	int sum, valueToAdd;
-
-	if(!strcmp(type,"Imm")){
-		// sum = operands[0] + CF + acc;
-		valueToAdd = operands[0];
-	}
-	
-	else if(!strcmp(type,"ZP")){
-		// sum = getValue(operands[0]) + acc + CF;
-		valueToAdd = byteArray[addressZP(operands,0)];
-
-	} else if(!strcmp(type,"ZPX")){
-		// int lookup = byteArray[operands[0]] + X;
-		// sum = getValue(lookup) + acc + CF;
-
-		valueToAdd = byteArray[addressZP(operands,X)];
-	} else if(!strcmp(type,"Abs")){
-		// sum = getValue(operands[0] + (operands[1]<<8)) + acc + CF;
-		valueToAdd = byteArray[addressAbs(operands,0)];
-
-	} else if(!strcmp(type,"AbsX")){
-		// int lookup = byteArray[operands[0] + (operands[1]<<8)] + X;
-		// sum = getValue(lookup) + acc + CF;
-		valueToAdd = byteArray[addressAbs(operands,X)];
-
-	} else if(!strcmp(type,"AbsY")){
-		// int lookup = byteArray[operands[0] + (operands[1]<<8)] + Y;
-		// sum = getValue(lookup) + acc + CF;
-		valueToAdd = byteArray[addressAbs(operands,Y)];
-
-	} else if(!strcmp(type,"IndX")){
-		// int lookupIndex = operands[0] + X;
-		// int address = byteArray[lookupIndex] + (byteArray[lookupIndex+1]<<8);
-		// sum = byteArray[address] + acc + CF;
-
-		valueToAdd = byteArray[addressIndX(operands)];
-	} else if(!strcmp(type,"IndY")){
-		// int lookupIndex = operands[0];
-		// int address = byteArray[lookupIndex] + (byteArray[lookupIndex+1]<<8) + Y;
-		// sum = byteArray[address] + acc + CF;
-		valueToAdd = byteArray[addressIndY(operands)];
-
-	}
-	sum = add8bits(valueToAdd, acc);
-	sum = checkCF(sum);
-	acc = sum;
-	checkZF(acc);
-	checkNF(acc);
-}
-
-void storeRegister(int *operands, char* type, int* reg){
-	int storeAt = arrayIndex(operands, type);
-	byteArray[storeAt] = *reg;
-}
-
-void loadRegister(int* operands,char* type, int* reg){
-	int storeAt = arrayIndex(operands, type);
-	*reg = byteArray[storeAt];
-	checkZF(*reg);
-	checkNF(*reg);
-}
-
-void AND(int* operands,char* type){
+int arrayIndex(int* operands, char* type){
 	int storeAt;
 	if(!strcmp(type,"ZP")){
 		storeAt = addressZP(operands, 0);
@@ -254,15 +175,251 @@ void AND(int* operands,char* type){
 		storeAt = addressIndX(operands);
 
 	} else if(!strcmp(type,"IndY")){
-	
+
 		storeAt = addressIndY(operands);
 	}
-	printf("store at 0x%04x\n", storeAt );
-	byteArray[storeAt] = *reg;
+	printf("Array index is 0x%04x\n", storeAt );
+	return storeAt;
+}
+
+
+void ADC(int* operands, char* type){
+	if(!strcmp(type,"Imm")){
+		acc = add8bits(operands[0], acc);
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		int sum = add8bits(byteArray[storeAt], acc);	
+		acc = sum;
+	}
+	acc = checkCF(acc);
 	checkZF(acc);
 	checkNF(acc);
 }
 
+void AND(int* operands,char* type){
+	if(!strcmp(type,"Imm")){
+		acc = acc & operands[0];
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		acc = acc & byteArray[storeAt];
+	}
+	checkZF(acc);
+	checkNF(acc);
+}
+
+void ASL(int* operands,char* type){
+	int bit7;
+	if(!strcmp(type,"Acc")){
+		bit7 = acc & 0x80;
+		acc = (acc << 1) & 0xFF;
+		checkNF(acc);
+		checkZF(acc);
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		bit7 = byteArray[storeAt] & 0x80;
+		byteArray[storeAt] = (byteArray[storeAt]<<1) & 0xFF;
+		checkNF(byteArray[storeAt]);
+		checkZF(byteArray[storeAt]);
+	}
+
+	CF = bit7;
+}
+
+
+
+void branching(int *operands, char* type, int flag){
+	if(flag == 1){
+		int offset = translate8bitInts(operands[0]);
+		printf("offset %d\n", offset);
+		printf("pc is 0x%x\n", pc + (0x0600 - 0x100));
+		pc = pc + 2 + offset;
+		printf("pc is 0x%x\n", pc + (0x0600 - 0x100));
+	}
+}
+
+void BCC(int* operands, char* type){
+	branching(operands, type, !CF);
+}
+
+void BCS(int* operands, char* type){
+	branching(operands, type, CF);
+}
+
+void BEQ(int* operands, char* type){
+	branching(operands, type, ZF);
+}
+
+void BIT(int* operands, char* type){
+	int storeAt = arrayIndex(operands, type);
+	int value = byteArray[storeAt];
+	CF = ((acc & value) != 0);
+	NF = (value & 0x80) >> 7;
+	VF = (value & 0x40) >> 6;
+}
+
+void BMI(int* operands, char* type){
+	branching(operands, type, NF);
+}
+
+void BNE(int* operands, char* type){
+	branching(operands, type, !ZF);
+}
+
+void BPL(int* operands, char* type){
+	branching(operands, type, !NF);
+}
+
+void BVC(int* operands, char* type){
+	branching(operands, type, !VF);
+}
+
+void BVS(int* operands, char* type){
+	branching(operands, type, VF);
+}
+
+void CLC(int* operands, char* type){
+	CF = 0;
+}
+
+void CLD(int* operands, char* type){
+	DF = 0;
+}
+
+void CLI(int* operands, char* type){
+	IF = 0;
+}
+
+void CLV(int* operands, char* type){
+	VF = 0;
+}
+
+void compare(int* operands, char* type, int* reg){
+	int compare;
+	if(!strcmp(type,"Imm")){
+		compare = operands[0];
+	} else{
+		int storeAt = arrayIndex(operands, type);
+		compare = byteArray[storeAt];
+	}
+	if(*reg >= compare){
+		CF = 1;
+	}
+	else {
+		CF = 0;
+	}
+	if(*reg == compare){
+		ZF = 1;
+	} else{
+		ZF = 0;
+	}
+	checkNF(*reg - compare);
+}
+
+void CMP(int* operands, char* type){
+	compare(operands, type, acc_ptr);
+}
+
+void CPY(int* operands, char* type){
+	compare(operands, type, y_ptr);
+}
+
+void CPX(int* operands, char* type){
+	compare(operands, type, x_ptr);
+}
+
+
+void DEC(int* operands, char* type){
+	int storeAt = arrayIndex(operands, type);
+	byteArray[storeAt]--;
+	checkZF(byteArray[storeAt]);
+	checkNF(byteArray[storeAt]);
+}
+
+void DEX(int* operands, char* type){
+	X--;
+	checkNF(X);
+	checkZF(X);
+}
+void DEY(int* operands, char* type){
+	Y--;
+	checkNF(Y);
+	checkZF(Y);
+}
+
+
+void EOR(int* operands,char* type){
+	if(!strcmp(type,"Imm")){
+		acc = acc ^ operands[0];
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		acc = acc ^ byteArray[storeAt];
+	}
+	checkZF(acc);
+	checkNF(acc);
+}
+
+void INC(int* operands, char* type){
+	int storeAt = arrayIndex(operands, type);
+	byteArray[storeAt]++;
+	checkZF(byteArray[storeAt]);
+	checkNF(byteArray[storeAt]);
+}
+
+void INX(int* operands, char* type){
+	X++;
+	checkNF(X);
+	checkZF(X);
+}
+
+void INY(int* operands, char* type){
+	Y++;
+	checkNF(Y);
+	checkZF(Y);
+}
+
+void JMP(int* operands, char* type){
+	// int storeAt = arrayIndex(operands, type);
+	if(!strcmp(type,"Ind")){
+		int target = operands[0] + (operands[1]<<8);
+		printf("Target 0x%x\n", target);
+		int lsb = byteArray[target];
+		int msb = byteArray[target+1]<<8;
+
+		pc = lsb + msb;
+	}
+	else if(!strcmp(type,"Abs")){
+		int target = operands[0] + (operands[1]<<8);
+		pc = target;
+	}
+}
+
+
+void JSR(int* operands, char* type){
+	printf("pc+2 is %x\n", pc+2);
+	byteArray[SP - 1] = (pc + 2) & 0xFF;
+	byteArray[SP] = ((pc+2) & 0xFF00) >> 8;
+	printf("HSB %x\n", byteArray[SP]);
+	printf("LSB %x\n", byteArray[SP-1]);
+	SP = (SP - 2) & 0xFFFF;
+	pc = operands[0] + (operands[1]<<8) + 0x100;
+}
+
+
+void loadRegister(int* operands,char* type, int* reg){
+	if(!strcmp(type,"Imm")){
+		*reg = operands[0];
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		*reg = byteArray[storeAt];
+	}
+	checkZF(*reg);
+	checkNF(*reg);
+}
 
 void LDA(int* operands,char* type){
 	loadRegister(operands, type, acc_ptr);
@@ -274,6 +431,164 @@ void LDX(int* operands,char* type){
 
 void LDY(int* operands,char* type){
 	loadRegister(operands,type,y_ptr);
+}
+
+void LSR(int* operands,char* type){
+	int bit0;
+	if(!strcmp(type,"Acc")){
+		bit0 = acc & 0x01;
+		acc = (acc >> 1) & 0x7F;
+		checkNF(acc);
+		checkZF(acc);
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		bit0 = byteArray[storeAt] & 0x01;
+		byteArray[storeAt] = (byteArray[storeAt]>>1) & 0x7f;
+		checkNF(byteArray[storeAt]);
+		checkZF(byteArray[storeAt]);
+	}
+
+	CF = bit0;
+}
+
+void NOP(int* operands, char* type){}
+
+void ORA(int* operands,char* type){
+	if(!strcmp(type,"Imm")){
+		acc = acc | operands[0];
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		acc = acc | byteArray[storeAt];
+	}
+	checkZF(acc);
+	checkNF(acc);
+}
+
+void PHA(int* operands, char* type){
+	byteArray[SP] = acc;
+	SP = (SP - 1) & 0xFFFF;
+}
+
+void PHP(int* operands, char* type){
+	int res = (NF<<7)+(VF<<6)+(BF<<4)+(DF<<3)+(IF<<2)+(ZF<<1)+(CF);
+	byteArray[SP] = res;
+	SP = (SP - 1) & 0xFFFF;
+}
+
+void PLA(int* operands, char* type){
+	acc = byteArray[(SP+1) & 0xFFFF];
+	SP = (SP + 1) & 0xFFFF;
+	checkNF(acc);
+	checkZF(acc);
+}
+
+void PLP(int* operands, char* type){
+	int res = byteArray[(SP+1) & 0xFFFF];
+	NF = (res>>7) & 0x1;
+	VF = (res>>6) & 0x1;
+	BF = (res>>4) & 0x1;
+	DF = (res>>3) & 0x1;
+	IF = (res>>2) & 0x1;
+	ZF = (res>>1) & 0x1;
+	CF = res & 0x1;
+
+	SP = (SP + 1) & 0xFFFF;
+}
+
+void BRK(int* operands, char* type){
+	BF = 0;
+	byteArray[SP] = pc;
+	SP--;
+	PHP(operands, type);
+	pc = 0xFFFE;
+}
+
+void ROL(int* operands,char* type){
+	int bit7;
+	if(!strcmp(type,"Acc")){
+		bit7 = acc & 0x80;
+		acc = (acc << 1) & 0xFF;
+		acc = acc + CF;
+		checkNF(acc);
+		checkZF(acc);
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		bit7 = byteArray[storeAt] & 0x80;
+		byteArray[storeAt] = ((byteArray[storeAt]<<1) & 0xFF) + CF;
+		checkNF(byteArray[storeAt]);
+		checkZF(byteArray[storeAt]);
+	}
+
+	CF = bit7;
+}
+
+
+void ROR(int* operands,char* type){
+	int bit0;
+	if(!strcmp(type,"Acc")){
+		bit0 = acc & 0x01;
+		acc = (acc >> 1) & 0x7F;
+		acc = acc + (CF<<7);
+		checkNF(acc);
+		checkZF(acc);
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		bit0 = byteArray[storeAt] & 0x01;
+		byteArray[storeAt] = (byteArray[storeAt]>>1) & 0x7f;
+		byteArray[storeAt] = byteArray[storeAt] + (CF<<7);
+		checkNF(byteArray[storeAt]);
+		checkZF(byteArray[storeAt]);
+	}
+
+	CF = bit0;
+}
+
+void RTI(int* operands, char* type){
+	PLP(operands, type);
+	SP++;
+	pc = byteArray[SP];
+	SP++;
+}
+
+void RTS(int* operands, char* type){
+	pc = (byteArray[SP+2] << 8) + byteArray[SP+1] + 1;
+	byteArray[SP+1] = 0;
+	byteArray[SP+2] = 0;
+	SP = (SP + 2) & 0xFFFF;
+}
+
+void SBC(int* operands, char* type){
+	if(!strcmp(type,"Imm")){
+		acc = subtract8bits(acc,operands[0]);
+	}
+	else{
+		int storeAt = arrayIndex(operands, type);
+		int diff = subtract8bits(acc,byteArray[storeAt]);	
+		acc = diff;
+	}
+	acc = checkCF(acc);
+	checkZF(acc);
+	checkNF(acc);
+}
+
+void SEC(int* operands, char* type){
+	CF = 1;
+}
+
+void SED(int* operands, char* type){
+	DF = 1;
+}
+
+void SEI(int* operands, char* type){
+	DF = 1;
+}
+void storeRegister(int *operands, char* type, int* reg){
+	int storeAt = arrayIndex(operands, type);
+	byteArray[storeAt] = *reg;
 }
 
 void STA(int* operands,char* type){
@@ -288,261 +603,16 @@ void STY(int* operands,char* type){
 	storeRegister(operands, type, y_ptr);
 }
 
-void INC(int* operands, char* type){
-	int value;
-	if(!strcmp(type,"ZP")){
-		byteArray[operands[0]]++;
-		value = getValue(operands[0]) + 1;
-
-	} else if(!strcmp(type,"ZPX")){
-		int lookup = byteArray[operands[0]] + X;
-		byteArray[lookup]++;
-		value = getValue(lookup) + 1;
-
-	} else if(!strcmp(type,"Abs")){
-		int lookup = byteArray[operands[0] + (operands[1]<<8)];
-		byteArray[lookup]++;
-		value = getValue(lookup) + 1;
-	} else if(!strcmp(type,"AbsX")){
-		int lookup = byteArray[operands[0] + (operands[1]<<8)] + X;
-		byteArray[lookup]++;
-		value = getValue(lookup) + 1;
-	}
-	checkZF(value);
-	checkNF(value);
-}
-
-
-void DEC(int* operands, char* type){
-	int value;
-	if(!strcmp(type,"ZP")){
-		byteArray[operands[0]] = byteArray[operands[0]] - 1;
-		value = getValue(operands[0]) - 1;
-
-	} else if(!strcmp(type,"ZPX")){
-		int lookup = byteArray[operands[0]] + X;
-		byteArray[lookup]--;
-		value = getValue(lookup) - 1;
-
-	} else if(!strcmp(type,"Abs")){
-		int lookup = byteArray[operands[0] + (operands[1]<<8)];
-		byteArray[lookup]--;
-		value = getValue(lookup) - 1;
-	} else if(!strcmp(type,"AbsX")){
-		int lookup = byteArray[operands[0] + (operands[1]<<8)] + X;
-		byteArray[lookup]--;
-		value = getValue(lookup) - 1;
-	}
-	checkZF(value);
-	checkNF(value);
-}
-void INX(int* operands, char* type){
-	X++;
-	checkNF(X);
-	checkZF(X);
-}
-
-void DEX(int* operands, char* type){
-	X--;
-	checkNF(X);
-	checkZF(X);
-}
-
-void INY(int* operands, char* type){
-	Y++;
-	checkNF(Y);
-	checkZF(Y);
-}
-
-void DEY(int* operands, char* type){
-	Y--;
-	checkNF(Y);
-	checkZF(Y);
-}
-
-void PHA(int* operands, char* type){
-	byteArray[SP] = acc;
-	SP = (SP - 1) & 0xFFFF;
-}
-
-void PLA(int* operands, char* type){
-	acc = byteArray[(SP+1) & 0xFFFF];
-	SP = (SP + 1) & 0xFFFF;
-}
-
-void PHP(int* operands, char* type){
-	int res = (CF<<6)+(ZF<<5)+(IF<<4)+(DF<<3)+(BF<<2)+(VF<<1)+(NF);
-	byteArray[SP] = res;
-	SP = (SP - 1) & 0xFFFF;
-}
-
-void PLP(int* operands, char* type){
-	int res = byteArray[(SP+1) & 0xFFFF];
-	CF = (res>>6) & 0x1;
-	ZF = (res>>5) & 0x1;
-	IF = (res>>4) & 0x1;
-	DF = (res>>3) & 0x1;
-	BF = (res>>2) & 0x1;
-	VF = (res>>1) & 0x1;
-	NF = res & 0x1;
-	SP = (SP + 1) & 0xFFFF;
-}
-
-
-
-void JSR(int* operands, char* type){
-	printf("pc+2 is %x\n", pc+2);
-	byteArray[SP - 1] = (pc + 2) & 0xFF;
-	byteArray[SP] = ((pc+2) & 0xFF00) >> 8;
-	printf("HSB %x\n", byteArray[SP]);
-	printf("LSB %x\n", byteArray[SP-1]);
-	SP = (SP - 2) & 0xFFFF;
-	pc = operands[0] + (operands[1]<<8) + 0x100;
-}
-
-void RTS(int* operands, char* type){
-	pc = (byteArray[SP+2] << 8) + byteArray[SP+1] + 1;
-	byteArray[SP+1] = 0;
-	byteArray[SP+2] = 0;
-	SP = (SP + 2) & 0xFFFF;
-}
-
-void compare(int* operands, char* type, int* reg){
-	int compare;
-	if(!strcmp(type,"Imm")){
-		compare = operands[0];
-	}
-	
-	else if(!strcmp(type,"ZP")){
-		compare = getValue(operands[0]);
-
-	} else if(!strcmp(type,"ZPX")){
-		int lookup = byteArray[operands[0]] + X;
-		compare = getValue(lookup);
-
-	} else if(!strcmp(type,"Abs")){
-		compare = getValue(operands[0] + operands[1]<<8);
-
-	} else if(!strcmp(type,"AbsX")){
-		int lookup = byteArray[operands[0] + operands[1]<<8] + X;
-		compare = getValue(lookup);
-
-	} else if(!strcmp(type,"AbsY")){
-		int lookup = byteArray[operands[0] + operands[1]<<8] + Y;
-		compare = getValue(lookup);
-
-	} else if(!strcmp(type,"IndX")){
-		int lookupIndex = operands[0] + X;
-		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<8;
-
-		int address = byte1 + byte2;
-		compare = byteArray[address];
-
-	} else if(!strcmp(type,"IndY")){
-		int lookupIndex = operands[0];
-		int byte1 = byteArray[lookupIndex];
-		int byte2 = (byteArray[lookupIndex+1])<<8; 
-		int address = byte1 + byte2 + Y;
-		compare = byteArray[address];
-	}
-
-	if(*reg>=compare){
-		CF = 1;
-	}
-	else {
-		CF = 0;
-	}
-	if(*reg == compare){
-		ZF = 1;
-	} else{
-		ZF = 0;
-	}
-	checkNF(*reg - compare);
-}
-void CMP(int* operands, char* type){
-	compare(operands, type, acc_ptr);
-}
-
-void CPY(int* operands, char* type){
-	compare(operands, type, y_ptr);
-}
-
-void CPX(int* operands, char* type){
-	compare(operands, type, x_ptr);
-}
-
-void BRK(int* operands, char* type){}
-
-void branching(int *operands, char* type, int flag){
-	if(flag == 1){
-		int offset = translate8bitInts(operands[0]);
-		printf("offset %d\n", offset);
-		printf("pc is 0x%x\n", pc + (0x0600 - 0x100));
-		pc = pc + 2 + offset;
-		printf("pc is 0x%x\n", pc + (0x0600 - 0x100));
-	}
-}
-
-void BMI(int* operands, char* type){
-	branching(operands, type, NF);
-}
-
-void BPL(int* operands, char* type){
-	branching(operands, type, !NF);
-}
-
-
-void BEQ(int* operands, char* type){
-	branching(operands, type, ZF);
-}
-
-void BNE(int* operands, char* type){
-	branching(operands, type, !ZF);
-}
-
-void BVS(int* operands, char* type){
-	branching(operands, type, VF);
-}
-
-void BVC(int* operands, char* type){
-	branching(operands, type, !VF);
-}
-
-void CLC(int* operands, char* type){
-	CF = 0;
-}
-
-void CLV(int* operands, char* type){
-	VF = 0;
-}
-
-void CLI(int* operands, char* type){
-	IF = 0;
-}
-
-void CLD(int* operands, char* type){
-	DF = 0;
-}
-
-void JMP(int* operands, char* type){
-	if(!strcmp(type,"Ind")){
-		int target = operands[0] + (operands[1]<<8);
-		printf("Target 0x%x\n", target);
-		int lsb = byteArray[target];
-		int msb = byteArray[target+1]<<8;
-
-		pc = lsb + msb;
-	}
-	else if(!strcmp(type,"Abs")){
-		int target = operands[0] + (operands[1]<<8);
-		pc = target;
-	}
-}
 void TYA(int* operands, char* type){
 	acc = Y;
 	checkZF(acc);
 	checkNF(acc);
+}
+
+void TAX(int* operands, char* type){
+	X = acc;
+	checkZF(X);
+	checkNF(X);
 }
 
 void TAY(int* operands, char* type){
@@ -551,8 +621,8 @@ void TAY(int* operands, char* type){
 	checkNF(Y);
 }
 
-void TAX(int* operands, char* type){
-	X = acc;
+void TSX(int* operands, char* type){
+	X = SP;
 	checkZF(X);
 	checkNF(X);
 }
@@ -562,7 +632,6 @@ void TXA(int* operands, char* type){
 	checkZF(acc);
 	checkNF(acc);
 }
-
 
 void (*ftable[56])(int* operands,char*mode);
 
