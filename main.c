@@ -14,6 +14,7 @@ int main(){
 	int i = 0;
 	char buffer[15];
 	while(pc - 0x100 < byteCount() || !endFile){
+		
 		printf("\nEnter new instruction: ");
 		fgets(buffer, 15, stdin );
 		printf("\n");
@@ -33,18 +34,23 @@ int main(){
 		}
 		else if(!strcmp(command, "e")){
 			char* address = strtok(0," ");
-			*address++;
-			removeSpaces(address);
-			address[strlen(address)-1] = 0;
-			printf("String %s\n", address);
-
-			int hexCode = (int)strtol(address,NULL,16);
-			printf("hex is %x \n", hexCode);
-			if(hexCode >= 0 && hexCode <= 0xFFFF){
-				printf("Byte at $%02x: %02x\n", hexCode, byteArray[hexCode]);
+			if(*address != '$' || address == 0 ){
+				printf("Error with address \n");
 			}
 			else{
-				printf("Error with address \n");
+				*address++;
+				removeSpaces(address);
+				address[strlen(address)-1] = 0;
+				printf("String %s\n", address);
+
+				int hexCode = (int)strtol(address,NULL,16);
+				printf("hex is %x \n", hexCode);
+				if(hexCode >= 0 && hexCode <= 0xFFFF){
+					printf("Byte at $%02x: %02x\n", hexCode, byteArray[hexCode]);
+				}
+				else{
+					printf("Error with address \n");
+				}
 			}
 		}
 
@@ -55,9 +61,12 @@ int main(){
 			}
 			else{
 				removeSpaces(address);
-				int hexCode = (int)strtol(address,NULL,0);
+				*address++;
+				printf("%s\n", address);
+				int hexCode = (int)strtol(address,NULL,16);
+				printf("%x\n", hexCode);
 				if(hexCode >= 0 && hexCode <= 0xFFFF){
-				// continueToAddress(hexCode);
+				continueToAddress(hexCode);
 				}
 
 				else{
@@ -68,7 +77,9 @@ int main(){
 		else{
 			printf("Invalid Instruction\n");
 		}
+		
 
+		// updatePC();
 		if(i == 120){
 			break;
 		}

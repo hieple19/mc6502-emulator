@@ -25,6 +25,7 @@ void processOneOpCode(char* line, int index){
 				case 8:
 				case 9:
 				case 10:
+				case 4:
 				codeList[hexCode].noBytes = 3;
 				break;
 

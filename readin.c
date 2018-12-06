@@ -55,7 +55,7 @@ void readBinary(){
 	byteArray = (int*) malloc(sizeof(int)*0xFFFF);
 	FILE *inputFile;
 
-	inputFile = fopen("fib.exc", "rb");
+	inputFile = fopen("test.exc", "rb");
 
 	if (inputFile == NULL)
 	{
@@ -67,7 +67,7 @@ void readBinary(){
 
 	int index = checkForHeader();
 	// printf("%d\n", byteRead );
-	copyBytes(index, byteRead);
+	copyBytes(0, byteRead+1);
 
 	while(byteRead == 2048){
 		byteRead = fread(buffer,1,2048,inputFile);
@@ -75,8 +75,8 @@ void readBinary(){
 	}
 
 	printf("%d\n", byteCount());
-	for(int i = 0x100; i < 0x100 + byteCount(); i= i + 4){
-		// printf("0x%04x %02x %02x %02x %02x\n",i, byteArray[i], byteArray[i+1],byteArray[i+2],byteArray[i+3]);
+	for(int i = 0x100; i < byteCount(); i= i + 4){
+		printf("0x%04x %02x %02x %02x %02x\n",i, byteArray[i], byteArray[i+1],byteArray[i+2],byteArray[i+3]);
 	}
  //   	fseek( inputFile, 0, SEEK_SET );
 
