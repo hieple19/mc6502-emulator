@@ -10,4 +10,4 @@ extern void updatePC();
 extern void initializeFunctions();
 extern void printData();
 extern void continueToAddress(int address);
-extern bool endFile;
+// extern bool endFile;

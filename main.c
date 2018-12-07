@@ -13,8 +13,7 @@ int main(){
 	readBinary();
 	int i = 0;
 	char buffer[15];
-	while(pc - 0x100 < byteCount() || !endFile){
-		
+	while(pc < byteArrayCount + 1){
 		printf("\nEnter new instruction: ");
 		fgets(buffer, 15, stdin );
 		printf("\n");
@@ -56,7 +55,7 @@ int main(){
 
 		else if(!strcmp(command, "c")){
 			char* address = strtok(0," ");
-			if(address == 0){
+			if(*address != '$' || address == 0 ){
 				printf("Error with address \n");
 			}
 			else{
@@ -65,7 +64,7 @@ int main(){
 				printf("%s\n", address);
 				int hexCode = (int)strtol(address,NULL,16);
 				printf("%x\n", hexCode);
-				if(hexCode >= 0 && hexCode <= 0xFFFF){
+				if(hexCode >= 0x100 && hexCode <= byteArrayCount){
 				continueToAddress(hexCode);
 				}
 
@@ -78,8 +77,6 @@ int main(){
 			printf("Invalid Instruction\n");
 		}
 		
-
-		// updatePC();
 		if(i == 120){
 			break;
 		}
