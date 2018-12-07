@@ -7,7 +7,5 @@ extern int CF;
 extern int ZF;
 
 extern void updatePC();
-extern void initializeFunctions();
 extern void printData();
 extern void continueToAddress(int address);
-// extern bool endFile;

@@ -11,6 +11,15 @@ char* codeNames[56];
 
 char* modes[12] = {"Imm", "ZP", "ZPX", "ZPY","Ind", "IndX", "IndY", "Acc", "Abs", "AbsX", "AbsY", "Bran"};
 
+// Process BRK, special case as OpCode is 0 same as NULL
+void processBreak(){
+	codeNames[12] = "BRK";
+	codeList[0].hexCode = 0;
+	
+	strcpy(codeList[0].name,"BRK");
+	strcpy(codeList[0].mode, "Acc");
+	codeList[0].noBytes = 1;
+}
 void processOneOpCode(char* line, int index){
 	char name[3];
 	codeNames[index] = (char*) malloc(sizeof(char)*3);
@@ -42,7 +51,6 @@ void processOneOpCode(char* line, int index){
 				codeList[hexCode].noBytes = 2;
 			}
 		}
-
 	}
 } 
 
@@ -61,6 +69,7 @@ void processOpCodes(){
 	fgets(line, sizeof(line), fptr);
 
 	int index = 0;
+	processBreak();
 	while(fgets(line, sizeof(line), fptr)){
 		processOneOpCode(line, index);
 		index++;

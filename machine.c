@@ -123,15 +123,6 @@ int subtract8bits(int a, int b){
 	return diff;
 }
 
-// int getAddress(int* operands, int number){
-// 	if(number == 1){
-// 		return byteArray[operands[0]];
-// 	}
-// 	else{
-// 		return byteArray[operands[0] + (operands[1]<<8)];
-// 	}
-// }
-
 // Given Absolute mode, Operands and Registers, function will return corresponding address
 int addressAbs(int* operands, int reg){
 	return (operands[0] + (operands[1]<<8) + reg) & 0xFFFF;
@@ -181,7 +172,6 @@ int arrayIndex(int* operands, char* type){
 	} else if(!strcmp(type,"IndY")){
 		storeAt = addressIndY(operands);
 	}
-	printf("Array index is 0x%04x\n", storeAt );
 	return storeAt;
 }
 
@@ -415,7 +405,6 @@ void INY(int* operands, char* type){
 void JMP(int* operands, char* type){
 	if(!strcmp(type,"Ind")){
 		int target = operands[0] + (operands[1]<<8); // For Indirect, get a target
-		printf("Target 0x%x\n", target);
 		int lsb = byteArray[target];	
 		int msb = byteArray[target+1]<<8;			// Get low and high bytes
 
@@ -430,11 +419,8 @@ void JMP(int* operands, char* type){
 // Function pushes return point on stack (address of next instruction minus 1)
 // Sets PC to memory address
 void JSR(int* operands, char* type){
-	printf("pc+2 is %x\n", pc+2);
 	byteArray[SP - 1] = (pc + 2) & 0xFF;
 	byteArray[SP] = ((pc+2) & 0xFF00) >> 8;
-	printf("HSB %x\n", byteArray[SP]);
-	printf("LSB %x\n", byteArray[SP-1]);
 	SP = (SP - 2) & 0xFFFF;
 	pc = operands[0] + (operands[1]<<8) + 0x100;
 }
@@ -546,7 +532,7 @@ void BRK(int* operands, char* type){
 	byteArray[SP] = pc;
 	SP--;
 	PHP(operands, type);
-	pc = 0xFFFE;
+	// pc = 0xFFFE;
 }
 
 // Move bits in A or Memory one place to the left
@@ -719,39 +705,6 @@ void (*ftable[56])(int* operands,char*mode) = {ADC, AND, ASL, BIT, BPL, BMI, BVC
 BEQ, BRK, CMP, CPX, CPY, DEC, EOR, CLC, SEC, CLI, SEI, CLV, CLD, SED, INC, JMP, JSR, LDA, LDX, LDY, 
 LSR, NOP, ORA, TAX, TXA, DEX, INX, TAY, TYA, DEY, INY, ROR, ROL, RTI, RTS, SBC, STA, TXS, TSX, PHA, PLA, PHP, PLP, STX, STY};
 
-void initializeFunctions() {
-// 	ftable = {ADC, AND, ASL, BIT, BPL, BMI, BVC, BVS, BCC, BCS, BNE, 
-// BEQ, BRK, CMP, CPX, CPY, DEC, EOR, CLC, SEC, CLI, SEI, CLV, CLD, SED, INC, JMP, JSR, LDA, LDX, LDY, 
-// LSR, NOP, ORA, TAX, TXA, DEX, INX, TAY, TYA, DEY, INY, ROR, ROL, RTI, RTS, SBC, STA, TXS, TSX, PHA, PLA, PHP, PLP, STX, STY}
-	// ftable[0] = ADC;
-	// ftable[1] = AND;
-	// ftable[4] = BPL;
-	// ftable[5] = BMI;
-	// ftable[10] = BNE;
-	// ftable[13] = CMP;
-	// ftable[14] = CPX;
-	// ftable[15] = CPY;
-	// ftable[25] = INC;
-	// ftable[26] = JMP;
-	// ftable[27] = JSR;
-	// ftable[28] = LDA;
-	// ftable[29] = LDX;
-	// ftable[30] = LDY;
-	// ftable[34] = TAX;
-	// ftable[35] = TXA;
-	// ftable[36] = DEX;
-	// ftable[37] = INX;
-	// ftable[38] = TAY;
-	// ftable[39] = TYA;
-	// ftable[41] = INY;
-	// ftable[45] = RTS;
-	// ftable[47] = STA;
-	// ftable[50] = PHA;
-	// ftable[51] = PLA;
-	// ftable[54] = STX;
-	// ftable[55] = STY;
-}
-
 void processLine(int opCode, int noBytes){
 	int* operands = (int*)malloc(sizeof(int)*(noBytes-1));
 
@@ -767,8 +720,6 @@ void processLine(int opCode, int noBytes){
 		exit(-1);
 	}
 
-	// printf("Ftable function is %d\n", findIndex(name));
-
 	// Given operand code, run function
 	ftable[findIndex(name)](operands, mode);
 }
@@ -783,6 +734,7 @@ void printData(){
 	printf("CF = %d\n", CF);
 	printf("SP = %02x\n", SP);
 	printf("PC = 0x%04x\n", pc);
+	printf("\n");
 }
 
 // RUN PROGRAM AND UPDATE 
@@ -800,23 +752,19 @@ void updatePC(){
 	processLine(opCodeCurr, noBytes);
 	
 	// Update pc for operations that does not change PC
+	// Else keep pc the same (Some operations already changed PC)
 	if(current == pc){
 		pc = pc + noBytes;
 	}
-	// Else keep pc the same
 	printData();
 }
 
 // Continue to an address. 
-// Address can be an operand
+// Address can be an operand. Thus, program continues to nearest address >= specified address
 // Conitinue to nearest byte ( -4 to + 3) range;
 void continueToAddress(int address){
-
 	while(pc != address){
-		if(pc>address && pc < address + 3){
-			break;
-		}
-		if(pc < address && pc > address -4){
+		if(pc>address){
 			break;
 		}
 		updatePC();

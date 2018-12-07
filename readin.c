@@ -7,9 +7,14 @@
 
 // Main array of processor, acting as memory and stack as well
 int* byteArray;
+
+//Bytes read will be stored temporarily in buffer, then converted 
+// to hex and stored in byte array
 char buffer[2048];
+
 int byteArrayCount = 0x100;
 
+// Remove all whitespaces from strings, used for formatting purposes
 void removeSpaces(char* source){
 	char* result = source;
 	char* current = source;
@@ -22,50 +27,45 @@ void removeSpaces(char* source){
 	*result = 0;
 }
 
-int copyBytes(int start, int end){
-	for(int i = start; i<end; i++){
+// Copy bytes from buffer to main byte array
+int copyBytes(int end){
+	for(int i = 0; i<end; i++){
 		int currentByte = buffer[i] & 0xff;
 		*(byteArray+byteArrayCount) = currentByte;
 		byteArrayCount++;
 	}
 }
 
-void readBinary(){
+void readBinary(FILE* inputFile){
 	byteArray = (int*) malloc(sizeof(int)*0xFFFF);
-	FILE *inputFile;
 	char line[20];
-
-	inputFile = fopen("conway.exc", "rb");
-
-	if (inputFile == NULL)
-	{
-		perror("Error while opening the file.\n");
-		exit(EXIT_FAILURE);
-	}
 
 	bool found = false;
 	while(fgets(line, 20, inputFile)){
-		if(!strcmp(line, "ENDHEADER\n")){
+		if(!strcmp(line, "ENDHEADER\n")){	// If ENDHEADER TAG found, keep pointer at a certain address
 			found = true;
 			break;
 		}
 	}
 
-	if(!found){
-		fclose(inputFile);
-		inputFile = fopen("sieve.exc", "rb");
+	// If ENDHEADER not found, assume file is all binary
+	// Restart the file and start reading
 
+	if(!found){		
+		// fclose(inputFile);
+		fseek(inputFile, 0, SEEK_SET);
 	}
 
 	int byteRead = fread(buffer,1,2048,inputFile);
-	copyBytes(0, byteRead);
+	copyBytes(byteRead);
 
+	//Check if there are still more to read
 	while(byteRead == 2048){
 		byteRead = fread(buffer,1,2048,inputFile);
-		copyBytes(0, byteRead);
+		copyBytes(byteRead);
 	}
 
 	for(int i = 0x100; i < byteArrayCount + 1; i= i + 4){
-		printf("0x%04x %02x %02x %02x %02x\n",i, byteArray[i], byteArray[i+1],byteArray[i+2],byteArray[i+3]);
+		// printf("0x%04x %02x %02x %02x %02x\n",i, byteArray[i], byteArray[i+1],byteArray[i+2],byteArray[i+3]);
 	}
 }
